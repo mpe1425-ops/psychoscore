@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#14213d">
+<title>ПсихоСкор — подсчёт баллов по методикам</title><link rel="icon" href="./favicon.svg"></head><body>
+<div id="home"><h1>ПсихоСкор</h1><p class="lead">Бесплатный конструктор подсчёта баллов для психологов: любые методики, зеркальные пункты, свои формулы, нормы и выгрузка в Excel.</p>
+<a class="go" href="#app">Открыть программу →</a>
+<div class="grid"><div class="card"><h3>Любая методика</h3>Свои пункты, шкалы 1–5, 1–7, −3…+3, Да/Нет или произвольные баллы; зеркальные пункты одной галочкой.</div>
+<div class="card"><h3>Шаблоны и категории</h3>Настроили один раз — пользуйтесь всегда. Методики и шаблоны делятся на категории и передаются коллегам файлом.</div>
+<div class="card"><h3>Excel и CSV</h3>Загрузка .xlsx, .xls, .csv и вставка ячеек Ctrl+V; результаты выгружаются в .xlsx.</div>
+<div class="card"><h3>Работает без интернета</h3>После первого открытия сайт можно установить как приложение. Подходит для компьютера, планшета и телефона.</div></div>
+<div class="hint"><b>🔒 Конфиденциальность.</b> Сайт ничего не отправляет на сервер: все данные хранятся только в вашем браузере на вашем устройстве. Очистка браузера удалит их, поэтому регулярно делайте резервную копию кнопкой «💾 Сохранить в файл».</div>
+<div class="hint"><b>⚠️ Отказ от ответственности.</b> Программа — вспомогательный инструмент подсчёта. Корректность ключей, норм и формул, которые вы вводите, а также интерпретация результатов остаются на ответственности специалиста. Проект в стадии бета-тестирования. Готовых методик и норм в программу не включено.</div>
+<p><small>Как пользоваться: откройте программу — при первом входе запустится короткое обучение, позже его можно вызвать кнопкой «? Обучение». Полная инструкция — в файле docs/USER_GUIDE.md репозитория.</small></p></div>
+<div id="app" hidden>
+<aside><h1>ПсихоСкор</h1><div id="list" style="flex:1;overflow:auto"></div>
+<button class="o" onclick="addM()">+ Новая методика</button>
+<button class="g" onclick="tplList()">★ Создать из шаблона</button>
+<button class="g" onclick="saveFile()">💾 Сохранить в файл</button>
+<button class="g" onclick="$('#fo').click()">📂 Открыть файл</button>
+<button class="g" onclick="tut()">? Обучение</button>
+<button class="g" onclick="theme()">🌓 Светлая / тёмная тема</button><a class="back" href="#">← На главную</a>
+<small class="note">Данные хранятся только в этом браузере. Делайте резервные копии: «💾 Сохранить в файл».</small>
+<input type="file" id="fo" accept=".json" hidden onchange="openFile(this.files[0]);this.value=''"></aside>
+<main><div class="tabs" id="tabs"></div><div id="v"></div></main>
+</div><div id="ov"></div><div id="toast"></div>
+<script type="module" src="/src/main.js"></script></body></html>
