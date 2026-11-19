@@ -21,8 +21,8 @@ async function saveFile(){const j=JSON.stringify(S,null,1);
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([j],{type:'application/json'}));a.download='психоскор-данные.json';a.click();toast('Файл сохранён в «Загрузки»')}
 function openFile(f){if(!f)return;const r=new FileReader();r.onload=()=>{let d;try{d=JSON.parse(r.result);if(!Array.isArray(d.ms))throw 0}catch(e){return alert('Это не файл ПсихоСкор.')}
  S.tpl=S.tpl||[];
- if(d.ms.length&&confirm('ОК — ЗАМЕНИТЬ текущие данные данными из файла.\nОтмена — ДОБАВИТЬ методики и шаблоны из файла к текущим.')){S=d;S.cur=0;S.seen=1}
- else{d.ms.forEach(m=>{m.id=Date.now()+Math.random();S.ms.push(m)});(d.tpl||[]).forEach(t=>{S.tpl=S.tpl.filter(x=>x.name!=t.name);S.tpl.push(t)})}
+ if(d.ms.length&&confirm('ОК — ЗАМЕНИТЬ текущие данные данными из файла.\nОтмена — ДОБАВИТЬ методики и шаблоны из файла к текущим.')){S=d;S.cur=0;S.mode='m';S.seen=1}
+ else{const mp={};d.ms.forEach(m=>{const o=m.id;m.id=Date.now()+Math.random();mp[o]=m.id;S.ms.push(m)});S.bat=S.bat||[];(d.bat||[]).forEach(b=>{b.mids=b.mids.map(x=>mp[x]??x);(b.rows||[]).forEach(r=>{const n={};Object.keys(r.a||{}).forEach(k=>n[mp[k]??k]=r.a[k]);r.a=n});S.bat.push(b)});(d.tpl||[]).forEach(t=>{S.tpl=S.tpl.filter(x=>x.name!=t.name);S.tpl.push(t)})}
  S.tpl=S.tpl||[];$o('');render();toast('Файл загружен')};r.readAsText(f,'utf-8')}
 function saveTpl(){if($('#op'))saveOpts();const m=M(),n=prompt('Название шаблона (например «СМИЛ-566»):',m.name);if(!n)return;
  const c=JSON.parse(JSON.stringify(m));c.name=n;c.rows=[];S.tpl=(S.tpl||[]).filter(t=>t.name!=n);S.tpl.push(c);save();toast('Шаблон «'+n+'» сохранён')}
@@ -37,12 +37,12 @@ function tplList(){const t=S.tpl||[],g={},sg={},k=x=>x.cat||'Без катего
  t.forEach((x,i)=>(g[k(x)]=g[k(x)]||[]).push(i));SH.forEach((x,i)=>(sg[k(x)]=sg[k(x)]||[]).push(i));
  const grp=(G,arr,mine)=>Object.keys(G).sort().map(c=>`<div class="cat" style="color:var(--hd)">${esc(c)}</div>`+G[c].map(i=>`<div class="row" style="justify-content:space-between"><b>${esc(arr[i].name)}</b><span><button class="o" onclick="${mine?`useTpl(${i})`:`useShared(${i})`}">Создать</button>${mine?` <button class="g" title="Скачать шаблон файлом: передать коллеге или добавить в общую библиотеку" onclick="expTpl(${i})">⬇</button> <button class="x" title="Удалить шаблон" onclick="delTpl(${i})">✕</button>`:''}</span></div>`).join('')).join('');
  $o('<h2>Шаблоны методик</h2>'+(SH.length?'<h3>🌐 Общая библиотека</h3>'+grp(sg,SH,false):'')+'<h3>★ Мои шаблоны</h3>'+(t.length?grp(g,t,true):'<p>Пока пусто. Настройте методику и нажмите «★ Сохранить как шаблон» на вкладке «Настройка».</p>')+'<div class="row"><button class="g" onclick="$(\'#fo\').click()">📂 Загрузить шаблон из файла</button>'+'<button class="g" onclick="$o(\'\')">Закрыть</button></div>')}
-function useShared(i){const c=JSON.parse(JSON.stringify(SH[i]));c.id=Date.now()+Math.random();c.rows=[];S.ms.push(c);S.cur=S.ms.length-1;S.tab=1;$o('');render()}
+function useShared(i){const c=JSON.parse(JSON.stringify(SH[i]));c.id=Date.now()+Math.random();c.rows=[];S.ms.push(c);S.cur=S.ms.length-1;S.mode='m';S.tab=1;$o('');render()}
 function expAll(){const m=new Map();SH.forEach(t=>m.set(t.name,t));(S.tpl||[]).forEach(t=>m.set(t.name,t));
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({ms:[],tpl:[...m.values()]},null,1)],{type:'application/json'}));a.download='shared-templates.json';a.click();
  toast('Скачан shared-templates.json — загрузите его в папку public репозитория (с заменой)')}
 function expTpl(i){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({ms:[],tpl:[S.tpl[i]]},null,1)],{type:'application/json'}));a.download='шаблон-'+S.tpl[i].name+'.json';a.click()}
-function useTpl(i){const c=JSON.parse(JSON.stringify(S.tpl[i]));c.id=Date.now()+Math.random();c.rows=[];S.ms.push(c);S.cur=S.ms.length-1;S.tab=1;$o('');render()}
+function useTpl(i){const c=JSON.parse(JSON.stringify(S.tpl[i]));c.id=Date.now()+Math.random();c.rows=[];S.ms.push(c);S.cur=S.ms.length-1;S.mode='m';S.tab=1;$o('');render()}
 function delTpl(i){if(confirm('Удалить шаблон «'+S.tpl[i].name+'»?')){S.tpl.splice(i,1);save();tplList()}}
 const TUT=[['Добро пожаловать в ПсихоСкор','Программа считает баллы по любым методикам. <b>Слева</b> — список ваших методик, <b>сверху</b> три вкладки: «Настройка» → «Ввод данных» → «Результаты». Один раз настроили методику — дальше только вносите ответы.'],
 ['1. Настройка методики','Выберите шаблон ответов (1–5, 1–7, −3…+3, Да/Нет…) и при необходимости измените баллы за каждый вариант. Добавьте пункты (можно вставить сразу списком). У зеркальных пунктов поставьте галочку: баллы инвертируются (1↔5, 2↔4).'],
@@ -54,15 +54,16 @@ function endTut(){S.seen=1;$o('');save()}
 const H=['💡 Настройте методику один раз: ответы → пункты → шкалы. Потом сохраните её как ★ шаблон. Изменения сохраняются автоматически.','💡 Вносите ответы баллом или подписью («Да»). Пустая клетка = пропуск. Значок ↺ у номера пункта — он зеркальный.','💡 Результаты пересчитываются сами. Столбец «n» — сколько пунктов учтено в шкале.'];
 const TIPS={'+ Новая методика':'Создать пустую методику','+ Пункт':'Добавить вопрос','+ Шкала':'Добавить шкалу подсчёта','+ Испытуемый':'Добавить строку в таблицу','Применить варианты':'Сохранить изменённые варианты ответов','★ Сохранить как шаблон':'Запомнить настройки методики (без данных) для повторного использования','Выгрузить в Excel':'Скачать результаты в виде таблицы, открывается в Excel','Вставить список пунктов':'Добавить много пунктов сразу, по одному на строку','зеркальный':'Обратный подсчёт: 1↔5, 2↔4, −3↔+3','Удалить методику':'Удалить методику вместе с данными','💾 Сохранить в файл':'Резервная копия всех методик, шаблонов и данных в файле на компьютере','📂 Открыть файл':'Загрузить ранее сохранённый файл','Загрузить из Excel / CSV':'Файлы .xlsx, .xls (XML/HTML), .csv, .txt. Колонки — по порядку пунктов','🗑 Удалить все ответы':'Очистить таблицу этой методики, настройки останутся','Вставить из Excel (буфер)':'Скопируйте ячейки в Excel (Ctrl+C), затем нажмите эту кнопку'};
 const tips=()=>document.querySelectorAll('button,label').forEach(b=>{const t=TIPS[b.textContent.trim()];if(t)b.title=t});
-function side(){const g={};S.ms.forEach((m,i)=>(g[m.cat||'Без категории']=g[m.cat||'Без категории']||[]).push(i));
- $('#list').innerHTML=Object.keys(g).sort().map(c=>`<div class="cat">${esc(c)}</div>`+g[c].map(i=>`<div class="m ${i==S.cur?'a':''}" onclick="S.cur=${i};render()" style="display:flex;justify-content:space-between"><span>${esc(S.ms[i].name)}</span><span title="Удалить методику" onclick="event.stopPropagation();delM(${i})">✕</span></div>`).join('')).join('')}
+function side(){const g={},k=m=>m.cat||'Без категории',bo=S.mode=='b';S.ms.forEach((m,i)=>(g[k(m)]=g[k(m)]||[]).push(i));
+ $('#list').innerHTML=Object.keys(g).sort().map(c=>`<div class="cat">${esc(c)}</div>`+g[c].map(i=>`<div class="m ${i==S.cur&&!bo?'a':''}" onclick="selM(${i})" style="display:flex;justify-content:space-between"><span>${esc(S.ms[i].name)}</span><span title="Удалить методику" onclick="event.stopPropagation();delM(${i})">✕</span></div>`).join('')).join('')
+ +'<div class="cat">Батареи методик</div>'+(S.bat||[]).map((b,i)=>`<div class="m ${bo&&i==S.cb?'a':''}" onclick="selB(${i})" style="display:flex;justify-content:space-between"><span>🗂 ${esc(b.name)}</span><span title="Удалить батарею" onclick="event.stopPropagation();delB(${i})">✕</span></div>`).join('')+'<div class="m" onclick="addB()" style="opacity:.85">+ Новая батарея</div>'}
 const cats=()=>[...new Set([...S.ms,...(S.tpl||[])].map(m=>m.cat).filter(Boolean))].map(c=>`<option value="${esc(c)}">`).join('');
-function render(){side();
+function render(){side();if(S.mode=='b'&&(S.bat||[])[S.cb])return renderB();
  if(!M()){$('#tabs').innerHTML='';$('#v').innerHTML='<p>Создайте методику слева или выберите «★ Создать из шаблона».</p>';return}
  $('#tabs').innerHTML=['Настройка','Ввод данных','Результаты'].map((t,i)=>`<div class="tab ${i==S.tab?'a':''}" onclick="S.tab=${i};render()">${t}</div>`).join('');
  [setup,data,results][S.tab]();$('#v').insertAdjacentHTML('afterbegin','<div class="hint">'+H[S.tab]+'</div>');tips();save()}
-function addM(){const n=prompt('Название методики:');if(!n)return;S.ms.push(mk(n,'1–5',10));S.cur=S.ms.length-1;S.tab=0;render()}
-function delM(i=S.cur){if(confirm('Удалить методику «'+S.ms[i].name+'» вместе с введёнными данными?\n(Настройки можно сохранить как шаблон.)')){S.ms.splice(i,1);S.cur=0;render()}}
+function addM(){const n=prompt('Название методики:');if(!n)return;S.ms.push(mk(n,'1–5',10));S.cur=S.ms.length-1;S.mode='m';S.tab=0;render()}
+function delM(i=S.cur){if(confirm('Удалить методику «'+S.ms[i].name+'» вместе с введёнными данными?\n(Настройки можно сохранить как шаблон.)')){const gone=S.ms[i].id;S.ms.splice(i,1);(S.bat||[]).forEach(b=>b.mids=b.mids.filter(x=>x!=gone));S.cur=0;render()}}
 function setup(){const m=M();
  $('#v').innerHTML=`<div class="card"><h3>Основное</h3><div class="row">Название <input value="${esc(m.name)}" size="40" onchange="M().name=this.value;side();save()"> Категория <input list="cats" size="20" placeholder="напр. Личность" value="${esc(m.cat||'')}" onchange="M().cat=this.value.trim();side();save()"><datalist id="cats">${cats()}</datalist>
  <button class="g" onclick="saveTpl()">★ Сохранить как шаблон</button> <button class="g" onclick="delM()">Удалить методику</button></div></div>
@@ -113,7 +114,7 @@ function clearCol(i){if(confirm('Очистить ответы на пункт �
 function clearRows(){const m=M();if(!m.rows.length)return toast('Таблица уже пуста');if(confirm('Удалить всех испытуемых и их ответы в методике «'+m.name+'» ('+m.rows.length+' чел.)?\nНастройки методики сохранятся. Действие нельзя отменить.')){m.rows=[];render();toast('Все ответы удалены')}}
 
 
-function ingest(rows){const m=M(),nm=m.showName!==false,off=nm?1:0;rows=rows.map(r=>r.map(clean)).filter(r=>r.some(x=>x!==''));
+function ingest(rows){if(S.mode=='b')return ingestB(rows);const m=M(),nm=m.showName!==false,off=nm?1:0;rows=rows.map(r=>r.map(clean)).filter(r=>r.some(x=>x!==''));
  if(!rows.length)return toast('В файле нет данных');
  const mode=$('#hd')?$('#hd').value:'auto',hdr=mode=='1'||(mode=='auto'&&!rows[0].slice(off).some(c=>val(m,c,false)!==null));
  if(hdr)rows.shift();if(!rows.length)return toast('После заголовков данных нет');
@@ -158,3 +159,66 @@ for(const [k,g,s] of [['save',()=>save],['toast',()=>toast],['saveFile',()=>save
 Object.defineProperty(window,'$',{get:()=>$,configurable:true});
 Object.defineProperty(window,'useShared',{get:()=>useShared,configurable:true});
 Object.defineProperty(window,'expAll',{get:()=>expAll,configurable:true});
+
+/* ===== Батареи методик: несколько методик одним испытуемым (только function — для hoisting) ===== */
+function B(){return (S.bat||[])[S.cb]}
+function bm(b){return S.ms.filter(m=>b.mids.includes(m.id))}
+function bA(b,r,m){return r.a[m.id]||(r.a[m.id]=m.items.map(()=>''))}
+function selM(i){S.cur=i;S.mode='m';render()}
+function selB(i){S.cb=i;S.mode='b';render()}
+function addB(){const n=prompt('Название батареи (например «Профориентация, 9 класс»):');if(!n)return;S.bat=S.bat||[];S.bat.push({name:n,mids:[],rows:[],showName:true});S.cb=S.bat.length-1;S.mode='b';S.tab=0;render()}
+function delB(i){if(confirm('Удалить батарею «'+S.bat[i].name+'» вместе с введёнными данными? Сами методики останутся.')){S.bat.splice(i,1);S.cb=0;S.mode='m';render()}}
+function togB(i,on){const b=B(),id=S.ms[i].id;b.mids=on?[...b.mids,id]:b.mids.filter(x=>x!=id);render()}
+function renderB(){
+ $('#tabs').innerHTML=['Состав','Ввод данных','Результаты'].map((t,i)=>`<div class="tab ${i==S.tab?'a':''}" onclick="S.tab=${i};render()">${t}</div>`).join('');
+ const t=Math.min(S.tab,2);[bSetup,bData,bResults][t]();
+ $('#v').insertAdjacentHTML('afterbegin','<div class="hint">'+['💡 Батарея — набор методик, которые вы проводите одним испытуемым. Отметьте методики; настройки каждой берутся из самой методики. Одиночные методики по-прежнему доступны слева.','💡 Одна строка — один испытуемый, столбцы идут по методикам слева направо. Всю широкую таблицу можно вставить из Excel сразу (Ctrl+V в клетку или «Загрузить из Excel»).','💡 Все шкалы всех методик в одной таблице. «Выгрузить в Excel» создаёт сводный лист и по листу на каждую методику.'][t]+'</div>');
+ tips();save()}
+function bSetup(){const b=B();$('#v').innerHTML=`<div class="card"><h3>Батарея</h3><div class="row">Название <input size="40" value="${esc(b.name)}" onchange="B().name=this.value;side();save()"><button class="g" onclick="delB(S.cb)">Удалить батарею</button></div></div>
+ <div class="card"><h3>Методики в батарее</h3>${S.ms.length?S.ms.map((m,i)=>`<div class="row"><label><input type="checkbox" ${b.mids.includes(m.id)?'checked':''} onchange="togB(${i},this.checked)"> <b>${esc(m.name)}</b></label><small>${m.cat?esc(m.cat)+' · ':''}пунктов: ${m.items.length}, шкал: ${m.scales.length}</small></div>`).join(''):'<p>Сначала создайте методики.</p>'}
+ <small>Порядок столбцов — как в списке методик слева. Данные снятой с батареи методики сохраняются и вернутся, если отметить её снова.</small></div>`}
+function bData(){const b=B(),ms=bm(b),nm=b.showName!==false;
+ if(!ms.length){$('#v').innerHTML='<div class="card">Отметьте методики на вкладке «Состав».</div>';return}
+ $('#v').innerHTML=`<div class="card"><div class="row"><button class="o" onclick="B().rows.push({n:'',a:{}});render()">+ Испытуемый</button>
+ <button class="g" onclick="$('#fi').click()">Загрузить из Excel / CSV</button><input type="file" id="fi" accept=".xlsx,.xlsm,.xls,.csv,.tsv,.txt,.xml,.html,.htm" hidden onchange="load(this.files[0]);this.value=''">
+ <button class="g" onclick="paste()">Вставить из Excel (буфер)</button><button class="g" onclick="clearB()">🗑 Удалить все ответы</button></div>
+ <div class="row"><label><input type="checkbox" ${nm?'checked':''} onchange="B().showName=this.checked;render()"> столбец «ФИО / код»</label> Заголовки в файле: <select id="hd"><option value="auto">определять сам</option><option value="1">есть</option><option value="0">нет</option></select></div>
+ <small>Порядок столбцов: ${ms.map(m=>esc(m.name)+' ('+m.items.length+')').join(' → ')}.</small></div>
+ <div class="w"><table><tr><th rowspan="2"></th><th rowspan="2">${nm?'ФИО / код':'№'}</th>${ms.map(m=>`<th colspan="${m.items.length}">${esc(m.name)}</th>`).join('')}</tr>
+ <tr>${ms.map((m,k)=>m.items.map((it,i)=>`<th title="${esc(it.t)}">${i+1}${it.r?'↺':''}<span class="cx" title="Очистить этот столбец у всех" onclick="clearColB(${k},${i})">⌫</span></th>`).join('')).join('')}</tr>
+ ${b.rows.map((r,y)=>{let c=0;return`<tr><td style="white-space:nowrap"><button class="x" title="Очистить ответы строки (ФИО останется)" onclick="clearRowB(${y})">⌫</button><button class="x" title="Удалить строку" onclick="B().rows.splice(${y},1);render()">✕</button></td>
+ ${nm?`<td><input data-br="${y}" data-bc="-1" placeholder="№ ${y+1}" style="min-width:150px;text-align:left" value="${esc(r.n)}" onchange="B().rows[${y}].n=this.value;save()"></td>`:`<td style="text-align:center;padding:0 8px"><b>${y+1}</b></td>`}
+ ${ms.map((m,k)=>m.items.map((_,i)=>{const col=c++;return`<td><input data-br="${y}" data-bc="${col}" value="${esc(bA(b,r,m)[i])}" onchange="bSet(${y},${k},${i},this.value)"></td>`}).join('')).join('')}</tr>`}).join('')}</table></div>`}
+function bSet(y,k,i,v){const b=B();bA(b,b.rows[y],bm(b)[k])[i]=v;save()}
+function clearRowB(y){const r=B().rows[y];Object.keys(r.a).forEach(k=>r.a[k]=r.a[k].map(()=>''));render()}
+function clearColB(k,i){if(confirm('Очистить этот столбец у всех испытуемых?')){const b=B(),m=bm(b)[k];b.rows.forEach(r=>bA(b,r,m)[i]='');render()}}
+function clearB(){const b=B();if(!b.rows.length)return toast('Таблица уже пуста');if(confirm('Удалить всех испытуемых и их ответы в батарее «'+b.name+'» ('+b.rows.length+' чел.)? Настройки останутся. Действие нельзя отменить.')){b.rows=[];render();toast('Все ответы удалены')}}
+function ingestB(rows){const b=B(),ms=bm(b),nm=b.showName!==false,off=nm?1:0;rows=rows.map(r=>r.map(clean)).filter(r=>r.some(x=>x!==''));
+ if(!ms.length)return toast('Сначала отметьте методики на вкладке «Состав»');if(!rows.length)return toast('В файле нет данных');
+ const mode=$('#hd')?$('#hd').value:'auto',hdr=mode=='1'||(mode=='auto'&&!rows[0].slice(off).some(c=>ms.some(m=>val(m,c,false)!==null)));
+ if(hdr)rows.shift();if(!rows.length)return toast('После заголовков данных нет');
+ const total=ms.reduce((s,m)=>s+m.items.length,0),w=Math.max(...rows.map(r=>r.length))-off;
+ rows.forEach(r=>{let pos=off;const a={};ms.forEach(m=>{a[m.id]=m.items.map((_,i)=>r[pos+i]||'');pos+=m.items.length});b.rows.push({n:nm?(r[0]||''):'',a})});render();
+ toast('Загружено строк: '+rows.length+'. Столбцов с ответами: '+w+', ожидалось (все методики): '+total+(w!=total?' — проверьте порядок и число столбцов!':''))}
+function bCalc(b){const ms=bm(b);return b.rows.map(r=>ms.map(m=>calc(m,{a:r.a[m.id]||[]})))}
+function bCell(h){return '<td style="padding:5px 8px;text-align:center">'+h+'</td>'}
+function bResults(){const b=B(),ms=bm(b),nm=b.showName!==false,C=bCalc(b),cv=m=>m.conv!='none';
+ if(!ms.length){$('#v').innerHTML='<div class="card">Отметьте методики на вкладке «Состав».</div>';return}
+ $('#v').innerHTML=`<div class="card"><div class="row"><button class="o" onclick="expB()">Выгрузить в Excel</button><small>Пропуски не учитываются; «n» — сколько пунктов учтено в шкале.</small></div></div>
+ <div class="w"><table><tr><th rowspan="2">${nm?'ФИО / код':'№'}</th>${ms.map(m=>`<th colspan="${m.scales.length*(cv(m)?3:2)}">${esc(m.name)}</th>`).join('')}</tr>
+ <tr>${ms.map(m=>m.scales.map(s=>`<th>${esc(s.name)}</th>${cv(m)?`<th>${esc(s.name)} (${m.conv})</th>`:''}<th>n</th>`).join('')).join('')}</tr>
+ ${b.rows.map((r,y)=>`<tr><td style="padding:5px 8px">${esc(nameOf(b,r,y))}</td>${C[y].map((c,k)=>c.map(o=>bCell('<b>'+f2(o.x)+'</b>')+(cv(ms[k])?bCell(f2(o.c)):'')+bCell('<span style="color:#889">'+o.n+'</span>')).join('')).join('')}</tr>`).join('')}</table></div>`}
+function expB(){const b=B(),ms=bm(b),nm=b.showName!==false,C=bCalc(b),cv=m=>m.conv!='none',n0=nm?'ФИО / код':'№';
+ const h=[n0,...ms.flatMap(m=>m.scales.flatMap(s=>[m.name+': '+s.name,...(cv(m)?[m.name+': '+s.name+' ('+m.conv+')']:[]),m.name+': '+s.name+' n']))];
+ const rows=b.rows.map((r,y)=>[nameOf(b,r,y),...C[y].flatMap((c,k)=>c.flatMap(o=>[f2(o.x),...(cv(ms[k])?[f2(o.c)]:[]),o.n]))]);
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([h,...rows]),'Сводка');
+ ms.forEach((m,k)=>{const hh=[n0,...m.scales.flatMap(s=>[s.name,...(cv(m)?[s.name+' ('+m.conv+')']:[]),'n'])],rr=b.rows.map((r,y)=>[nameOf(b,r,y),...C[y][k].flatMap(o=>[f2(o.x),...(cv(m)?[f2(o.c)]:[]),o.n])]);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([hh,...rr]),((k+1)+' '+m.name).replace(/[\\/?*\[\]:]/g,'_').slice(0,31))});
+ XLSX.writeFile(wb,b.name.replace(/[\\/:*?"<>|]/g,'_')+'.xlsx')}
+document.addEventListener('paste',e=>{const t=e.target;if(!t.dataset||t.dataset.bc===undefined)return;const txt=(e.clipboardData||window.clipboardData).getData('text');
+ if(!/[\t\n]/.test(txt.trim()))return;e.preventDefault();const b=B(),ms=bm(b),g=parseDelim(txt),r0=+t.dataset.br,c0=+t.dataset.bc;
+ g.forEach((row,dy)=>{const y=r0+dy;while(b.rows.length<=y)b.rows.push({n:'',a:{}});row.forEach((v,dx)=>{const c=c0+dx;v=clean(v);if(c==-1){b.rows[y].n=v;return}let o=c;for(const m of ms){if(o<m.items.length){bA(b,b.rows[y],m)[o]=v;return}o-=m.items.length}})});render();toast('Вставлено строк: '+g.length)});
+document.addEventListener('keydown',e=>{const t=e.target;if(e.key=='Enter'&&t.dataset&&t.dataset.bc!==undefined){const n=document.querySelector(`input[data-br="${+t.dataset.br+1}"][data-bc="${t.dataset.bc}"]`);if(n){n.focus();n.select()}}});
+S.ms.forEach(m=>{m.id=m.id||Date.now()+Math.random()});
+TUT.splice(TUT.length-1,0,['Батарея методик','Если одним испытуемым вы проводите несколько методик, создайте «+ Новая батарея» в списке слева: отметьте методики, вносите ответы одной таблицей (или вставьте широкую таблицу из Excel) и получайте все шкалы всех методик сразу, с выгрузкой в Excel. Отдельные методики по-прежнему можно считать по одной.']);
+for(const [k,g] of [['selM',()=>selM],['selB',()=>selB],['addB',()=>addB],['delB',()=>delB],['togB',()=>togB],['bSet',()=>bSet],['clearRowB',()=>clearRowB],['clearColB',()=>clearColB],['clearB',()=>clearB],['expB',()=>expB],['B',()=>B]])Object.defineProperty(window,k,{get:g,configurable:true});
