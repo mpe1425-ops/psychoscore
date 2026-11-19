@@ -35,7 +35,7 @@ async function loadShared(){const get=async u=>{const r=await fetch(u+'?'+Date.n
  else{try{SH=JSON.parse(localStorage.getItem('psy-shared')||'[]')}catch(_){SH=[]}}}
 function tplList(){const t=S.tpl||[],g={},sg={},k=x=>x.cat||'Без категории';
  t.forEach((x,i)=>(g[k(x)]=g[k(x)]||[]).push(i));SH.forEach((x,i)=>(sg[k(x)]=sg[k(x)]||[]).push(i));
- const grp=(G,arr,mine)=>Object.keys(G).sort().map(c=>`<div class="cat" style="color:var(--hd)">${esc(c)}</div>`+G[c].map(i=>`<div class="row" style="justify-content:space-between"><b>${esc(arr[i].name)}</b><span><button class="o" onclick="${mine?`useTpl(${i})`:`useShared(${i})`}">Создать</button>${mine?` <button class="g" title="Скачать шаблон файлом: передать коллеге или добавить в общую библиотеку" onclick="expTpl(${i})">⬇</button> <button class="x" title="Удалить шаблон" onclick="delTpl(${i})">✕</button>`:''}</span></div>`).join('')).join('');
+ const grp=(G,arr,mine)=>Object.keys(G).sort().map(c=>`<div class="cat" style="color:var(--hd)">${esc(c)}</div>`+G[c].map(i=>`<div class="row" style="justify-content:space-between"><b>${esc(arr[i].name)}</b><span><button class="o" onclick="${mine?`useTpl(${i})`:`useShared(${i})`}">Создать</button>${mine?` <button class="g" title="Скачать шаблон файлом: передать коллеге или добавить в общую библиотеку" onclick="expTpl(${i})">⬇ Файл</button> <button class="x" title="Удалить шаблон" onclick="delTpl(${i})">✕</button>`:''}</span></div>`).join('')).join('');
  $o('<h2>Шаблоны методик</h2>'+(SH.length?'<h3>🌐 Общая библиотека</h3>'+grp(sg,SH,false):'')+'<h3>★ Мои шаблоны</h3>'+(t.length?grp(g,t,true):'<p>Пока пусто. Настройте методику и нажмите «★ Сохранить как шаблон» на вкладке «Настройка».</p>')+'<div class="row"><button class="g" onclick="$(\'#fo\').click()">📂 Загрузить шаблон из файла</button>'+'<button class="g" onclick="$o(\'\')">Закрыть</button></div>')}
 function useShared(i){const c=JSON.parse(JSON.stringify(SH[i]));c.id=Date.now()+Math.random();c.rows=[];S.ms.push(c);S.cur=S.ms.length-1;S.mode='m';S.tab=1;$o('');render()}
 function expAll(){const m=new Map();SH.forEach(t=>m.set(t.name,t));(S.tpl||[]).forEach(t=>m.set(t.name,t));
@@ -66,7 +66,7 @@ function addM(){const n=prompt('Название методики:');if(!n)retur
 function delM(i=S.cur){if(confirm('Удалить методику «'+S.ms[i].name+'» вместе с введёнными данными?\n(Настройки можно сохранить как шаблон.)')){const gone=S.ms[i].id;S.ms.splice(i,1);(S.bat||[]).forEach(b=>b.mids=b.mids.filter(x=>x!=gone));S.cur=0;render()}}
 function setup(){const m=M();
  $('#v').innerHTML=`<div class="card"><h3>Основное</h3><div class="row">Название <input value="${esc(m.name)}" size="40" onchange="M().name=this.value;side();save()"> Категория <input list="cats" size="20" placeholder="напр. Личность" value="${esc(m.cat||'')}" onchange="M().cat=this.value.trim();side();save()"><datalist id="cats">${cats()}</datalist>
- <button class="g" onclick="saveTpl()">★ Сохранить как шаблон</button> <button class="g" onclick="delM()">Удалить методику</button></div></div>
+ <button class="g" onclick="saveTpl()">★ Сохранить как шаблон</button> <button class="g" onclick="expCur()" title="Скачать эту методику (без данных испытуемых) файлом шаблона — для загрузки в папку public/templates на GitHub">⬇ Файл шаблона для GitHub</button> <button class="g" onclick="delM()">Удалить методику</button></div></div>
  <div class="card"><h3>Варианты ответов</h3><div class="row">Шаблон: ${Object.keys(PRE).map(k=>`<button class="g" onclick="pre('${k}')">${k}</button>`).join('')}</div>
  <div class="row"><textarea id="op" rows="6" cols="30" oninput="saveOpts()">${m.opts.map(o=>o.l+';'+o.v).join('\n')}</textarea>
  <small>Каждая строка: «подпись;баллы». Сохраняется автоматически.<br>Зеркальный пункт: балл = мин + макс − балл<br>(1↔5, 2↔4, −3↔+3…).</small></div>
@@ -167,7 +167,7 @@ Object.defineProperty(window,'expAll',{get:()=>expAll,configurable:true});
 
 /* ===== Батареи методик: несколько методик одним испытуемым (только function — для hoisting) ===== */
 function B(){return (S.bat||[])[S.cb]}
-function bm(b){return S.ms.filter(m=>b.mids.includes(m.id))}
+function bm(b){if(!b.ord){b.mids=S.ms.filter(m=>b.mids.includes(m.id)).map(m=>m.id);b.ord=1}return b.mids.map(id=>S.ms.find(m=>m.id==id)).filter(Boolean)}
 function bA(b,r,m){return r.a[m.id]||(r.a[m.id]=m.items.map(()=>''))}
 function selM(i){S.cur=i;S.mode='m';render()}
 function selB(i){S.cb=i;S.mode='b';render()}
@@ -179,9 +179,11 @@ function renderB(){
  const t=Math.min(S.tab,2);[bSetup,bData,bResults][t]();
  $('#v').insertAdjacentHTML('afterbegin','<div class="hint">'+['💡 Батарея — набор методик, которые вы проводите одним испытуемым. Отметьте методики; настройки каждой берутся из самой методики. Одиночные методики по-прежнему доступны слева.','💡 Одна строка — один испытуемый, столбцы идут по методикам слева направо. Всю широкую таблицу можно вставить из Excel сразу (Ctrl+V в клетку или «Загрузить из Excel»).','💡 Все шкалы всех методик в одной таблице. «Выгрузить в Excel» создаёт сводный лист и по листу на каждую методику.'][t]+'</div>');
  tips();save()}
-function bSetup(){const b=B();$('#v').innerHTML=`<div class="card"><h3>Батарея</h3><div class="row">Название <input size="40" value="${esc(b.name)}" onchange="B().name=this.value;side();save()"><button class="g" onclick="delB(S.cb)">Удалить батарею</button></div></div>
- <div class="card"><h3>Методики в батарее</h3>${S.ms.length?S.ms.map((m,i)=>`<div class="row"><label><input type="checkbox" ${b.mids.includes(m.id)?'checked':''} onchange="togB(${i},this.checked)"> <b>${esc(m.name)}</b></label><small>${m.cat?esc(m.cat)+' · ':''}пунктов: ${m.items.length}, шкал: ${m.scales.length}</small></div>`).join(''):'<p>Сначала создайте методики.</p>'}
- <small>Порядок столбцов — как в списке методик слева. Данные снятой с батареи методики сохраняются и вернутся, если отметить её снова.</small></div>`}
+function bSetup(){const b=B(),ms=bm(b),rest=S.ms.filter(m=>!b.mids.includes(m.id)),info=m=>`<small>${m.cat?esc(m.cat)+' · ':''}пунктов: ${m.items.length}, шкал: ${m.scales.length}</small>`;
+ $('#v').innerHTML=`<div class="card"><h3>Батарея</h3><div class="row">Название <input size="40" value="${esc(b.name)}" onchange="B().name=this.value;side();save()"><button class="g" onclick="delB(S.cb)">Удалить батарею</button></div></div>
+ <div class="card"><h3>Методики в батарее</h3><small>Порядок сверху вниз — это порядок столбцов в таблице ввода, в результатах и в файле Excel. Стрелками меняйте методики местами: введённые ответы переезжают вместе с методикой.</small>
+ ${ms.length?ms.map((m,k)=>`<div class="row"><b style="width:24px">${k+1}</b><span style="min-width:240px"><b>${esc(m.name)}</b> ${info(m)}</span><button class="g" ${k?'':'disabled'} title="Выше" onclick="moveB(${k},-1)">↑</button><button class="g" ${k<ms.length-1?'':'disabled'} title="Ниже" onclick="moveB(${k},1)">↓</button><button class="x" title="Убрать из батареи (данные сохранятся)" onclick="untB(${k})">✕</button></div>`).join(''):'<p>Пока пусто — добавьте методики ниже.</p>'}</div>
+ <div class="card"><h3>Добавить методику</h3>${rest.length?rest.map(m=>`<div class="row"><span style="min-width:240px"><b>${esc(m.name)}</b> ${info(m)}</span><button class="o" onclick="addToB(${S.ms.indexOf(m)})">+ Добавить</button></div>`).join(''):'<p>Все методики уже в батарее (или других методик нет).</p>'}</div>`}
 function bData(){const b=B(),ms=bm(b),nm=b.showName!==false;
  if(!ms.length){$('#v').innerHTML='<div class="card">Отметьте методики на вкладке «Состав».</div>';return}
  $('#v').innerHTML=`<div class="card"><div class="row"><button class="o" onclick="B().rows.push({n:'',a:{}});render()">+ Испытуемый</button>
@@ -243,3 +245,12 @@ function setN(){const m=M(),n=Math.max(1,Math.min(1000,parseInt($('#nitems').val
  else{m.items.length=n;m.rows.forEach(r=>{r.a.length=Math.min(r.a.length,n)})}
  m.scales.forEach(s=>{if(String(s.it).trim()=='1-'+c)s.it='1-'+n});render();toast('Пунктов: '+n+(m.scales.some(s=>s.it=='1-'+n)?'':'. Проверьте номера пунктов в шкалах'))}
 Object.defineProperty(window,'setN',{get:()=>setN,configurable:true});
+
+/* ===== порядок методик в батарее и файл шаблона текущей методики ===== */
+function moveB(k,d){const b=B();b.mids=bm(b).map(m=>m.id);const a=b.mids;if(k+d<0||k+d>=a.length)return;[a[k],a[k+d]]=[a[k+d],a[k]];render()}
+function untB(k){const b=B();b.mids=bm(b).map(m=>m.id).filter((_,i)=>i!=k);render()}
+function addToB(i){const b=B();bm(b);b.mids.push(S.ms[i].id);render()}
+function expCur(){const c=JSON.parse(JSON.stringify(M()));c.rows=[];const a=document.createElement('a');
+ a.href=URL.createObjectURL(new Blob([JSON.stringify({ms:[],tpl:[c]},null,1)],{type:'application/json'}));a.download='шаблон-'+c.name.replace(/[\\/:*?"<>|]/g,'_')+'.json';a.click();
+ toast('Файл шаблона скачан — загрузите его в папку public/templates репозитория')}
+for(const [k,g] of [['moveB',()=>moveB],['untB',()=>untB],['addToB',()=>addToB],['expCur',()=>expCur]])Object.defineProperty(window,k,{get:g,configurable:true});
