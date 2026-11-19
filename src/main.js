@@ -254,3 +254,19 @@ function expCur(){const c=JSON.parse(JSON.stringify(M()));c.rows=[];const a=docu
  a.href=URL.createObjectURL(new Blob([JSON.stringify({ms:[],tpl:[c]},null,1)],{type:'application/json'}));a.download='шаблон-'+c.name.replace(/[\\/:*?"<>|]/g,'_')+'.json';a.click();
  toast('Файл шаблона скачан — загрузите его в папку public/templates репозитория')}
 for(const [k,g] of [['moveB',()=>moveB],['untB',()=>untB],['addToB',()=>addToB],['expCur',()=>expCur]])Object.defineProperty(window,k,{get:g,configurable:true});
+
+/* ===== выгрузка нескольких методик в один файл ===== */
+function expMany(){if(!S.ms.length)return toast('Методик пока нет');
+ $o('<h2>Выгрузить методики в файл</h2><p><small>Отметьте методики. Файл с шаблонами можно загрузить в папку public/templates репозитория (общая библиотека) или передать коллеге.</small></p>'
+ +S.ms.map((m,i)=>`<div class="row"><label><input type="checkbox" class="xm" value="${i}"> <b>${esc(m.name)}</b></label> <small>${m.cat?esc(m.cat)+' · ':''}пунктов: ${m.items.length}</small></div>`).join('')
+ +'<div class="row"><button class="g" onclick="selAllX()">Выбрать все</button></div>'
+ +'<div class="row"><label><input type="checkbox" id="xd"> вместе с данными испытуемых</label></div><small>⚠️ Вариант с данными — это резервная копия. Такой файл нельзя загружать в публичный репозиторий.</small>'
+ +'<div class="row" style="margin-top:12px"><button class="o" onclick="doExpMany()">⬇ Скачать файл</button><button class="g" onclick="$o(\'\')">Отмена</button></div>')}
+function selAllX(){document.querySelectorAll('.xm').forEach(c=>c.checked=true)}
+function doExpMany(){const ix=[...document.querySelectorAll('.xm:checked')].map(c=>+c.value);if(!ix.length)return toast('Отметьте хотя бы одну методику');
+ const wd=$('#xd').checked,cp=ix.map(i=>JSON.parse(JSON.stringify(S.ms[i])));if(!wd)cp.forEach(c=>c.rows=[]);
+ const nm=wd?'методики-с-данными':cp.length==1?'шаблон-'+cp[0].name.replace(/[\\/:*?"<>|]/g,'_'):'шаблоны-методик-'+cp.length;
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(wd?{ms:cp,tpl:[]}:{ms:[],tpl:cp},null,1)],{type:'application/json'}));a.download=nm+'.json';a.click();
+ $o('');toast('Выгружено методик: '+cp.length+(wd?'':'. Файл можно загрузить в public/templates'))}
+for(const [k,g] of [['expMany',()=>expMany],['selAllX',()=>selAllX],['doExpMany',()=>doExpMany]])Object.defineProperty(window,k,{get:g,configurable:true});
+(function(){const s=document.querySelector('aside button[onclick="saveFile()"]');if(s&&!document.getElementById('xmany')){const b=document.createElement('button');b.id='xmany';b.className='g';b.textContent='⬇ Выгрузить методики в файл';b.title='Скачать одну или несколько методик одним файлом';b.setAttribute('onclick','expMany()');s.after(b)}})();
