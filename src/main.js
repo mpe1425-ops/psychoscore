@@ -71,7 +71,7 @@ function setup(){const m=M();
  <div class="row"><textarea id="op" rows="6" cols="30" oninput="saveOpts()">${m.opts.map(o=>o.l+';'+o.v).join('\n')}</textarea>
  <small>Каждая строка: «подпись;баллы». Сохраняется автоматически.<br>Зеркальный пункт: балл = мин + макс − балл<br>(1↔5, 2↔4, −3↔+3…).</small></div>
  </div>
- <div class="card"><h3>Пункты (вопросы)</h3><small>Галочка «зеркальный» — обратный подсчёт для пункта.</small>
+ <div class="card"><h3>Пункты (вопросы)</h3><div class="row">Количество пунктов: <input type="number" id="nitems" min="1" max="1000" style="width:90px" value="${m.items.length}" onkeydown="if(event.key=='Enter')setN()"> <button class="g" onclick="setN()" title="Добавить или убрать пункты, чтобы их стало ровно столько">Задать</button></div><small>Галочка «зеркальный» — обратный подсчёт для пункта.</small>
  ${m.items.map((it,i)=>`<div class="row"><b style="width:28px">${i+1}</b><input size="60" value="${esc(it.t)}" onchange="M().items[${i}].t=this.value">
  <label><input type="checkbox" ${it.r?'checked':''} onchange="M().items[${i}].r=this.checked;save()"> зеркальный</label>
  <button class="x" onclick="M().items.splice(${i},1);M().rows.forEach(r=>r.a.splice(${i},1));render()">✕</button></div>`).join('')}
@@ -86,7 +86,12 @@ function setup(){const m=M();
  <datalist id="fl"><option>sum<option>avg</datalist>
  <button class="g" onclick="M().scales.push({name:'Шкала '+(M().scales.length+1),it:'',f:'sum',m:'',sd:''});render()">+ Шкала</button>
  <div class="row" style="margin-top:12px">Перевод в стандартные баллы (по среднему и σ из норм):
- <select onchange="M().conv=this.value;save()">${[['none','нет'],['z','z-баллы'],['T','T-баллы'],['sten','стены (1–10)'],['stanine','станайны (1–9)']].map(c=>`<option value="${c[0]}" ${m.conv==c[0]?'selected':''}>${c[1]}</option>`).join('')}</select></div></div>`}
+ <select onchange="M().conv=this.value;save()">${[['none','нет'],['z','z-баллы'],['T','T-баллы'],['sten','стены (1–10)'],['stanine','станайны (1–9)']].map(c=>`<option value="${c[0]}" ${m.conv==c[0]?'selected':''}>${c[1]}</option>`).join('')}</select></div>
+ <div class="row" style="margin-top:12px">Показывать в результатах:
+ <label><input type="checkbox" ${m.showN!==false?'checked':''} onchange="M().showN=this.checked;save()"> количество учтённых пунктов (n)</label>
+ <label><input type="checkbox" ${m.statMean?'checked':''} onchange="M().statMean=this.checked;save()"> среднее по шкале</label>
+ <label><input type="checkbox" ${m.statSd?'checked':''} onchange="M().statSd=this.checked;save()"> стандартное отклонение</label></div>
+ <small>Среднее и стандартное отклонение считаются по всем испытуемым и выводятся отдельными строками под таблицей (SD — выборочное, с делителем n−1). Среднее по пунктам шкалы для каждого испытуемого даёт формула <code>avg</code>.</small></div>`}
 function pre(k){M().opts=PRE[k].map(a=>({l:a[0],v:a[1]}));render()}
 function saveOpts(){M().opts=$('#op').value.split('\n').map(l=>l.split(';')).filter(a=>a[0].trim()).map(a=>({l:a[0].trim(),v:parseFloat((a[1]||'0').replace(',','.'))||0}));save()}
 function bulk(){const t=prompt('Вставьте список пунктов (каждый с новой строки):');if(!t)return;
@@ -138,14 +143,14 @@ document.addEventListener('paste',e=>{const t=e.target;if(!t.dataset||t.dataset.
  if(!/[\t\n]/.test(txt.trim()))return;e.preventDefault();const g=parseDelim(txt),r0=+t.dataset.r,c0=+t.dataset.c,m=M();
  g.forEach((row,dy)=>{const y=r0+dy;while(m.rows.length<=y)m.rows.push({n:'',a:m_blank()});row.forEach((v,dx)=>{const c=c0+dx;v=clean(v);if(c==-1)m.rows[y].n=v;else if(c>=0&&c<m.items.length)m.rows[y].a[c]=v})});render();toast('Вставлено строк: '+g.length)});
 document.addEventListener('keydown',e=>{const t=e.target;if(e.key=='Enter'&&t.dataset&&t.dataset.c!==undefined){const n=document.querySelector(`input[data-r="${+t.dataset.r+1}"][data-c="${t.dataset.c}"]`);if(n){n.focus();n.select()}}});
-function results(){const m=M(),cv=m.conv!='none';
- $('#v').innerHTML=`<div class="card"><div class="row"><button class="o" onclick="exp()">Выгрузить в Excel</button><small>Пропущенные ответы не учитываются. Колонка «n» — число учтённых пунктов.</small></div></div>
- <div class="w"><table><tr><th>${m.showName!==false?'ФИО / код':'№'}</th>${m.scales.map(s=>`<th>${esc(s.name)}</th>${cv?`<th>${esc(s.name)} (${m.conv})</th>`:''}<th>n</th>`).join('')}</tr>
- ${m.rows.map((r,y)=>{const c=calc(m,r);return`<tr><td style="padding:5px 8px">${esc(nameOf(m,r,y))}</td>`+c.map(o=>`<td style="padding:5px 8px;text-align:center"><b>${f2(o.x)}</b></td>${cv?`<td style="padding:5px 8px;text-align:center">${f2(o.c)}</td>`:''}<td style="padding:5px 8px;text-align:center;color:#889">${o.n}</td>`).join('')+'</tr>'}).join('')}</table></div>`}
-function exp(){const m=M(),cv=m.conv!='none';
- const h=[m.showName!==false?'ФИО / код':'№',...m.scales.flatMap(s=>[s.name,...(cv?[s.name+' ('+m.conv+')']:[]),'n'])];
- const rows=m.rows.map((r,y)=>[nameOf(m,r,y),...calc(m,r).flatMap(o=>[f2(o.x),...(cv?[f2(o.c)]:[]),o.n])]);
- const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([h,...rows]),'Результаты');
+function results(){const m=M(),cv=m.conv!='none',C=m.rows.map(r=>calc(m,r));
+ $('#v').innerHTML=`<div class="card"><div class="row"><button class="o" onclick="exp()">Выгрузить в Excel</button><small>Пропущенные ответы не учитываются.${sn(m)?' Колонка «n» — число учтённых пунктов.':''}</small></div></div>
+ <div class="w"><table><tr><th>${m.showName!==false?'ФИО / код':'№'}</th>${m.scales.map(s=>`<th>${esc(s.name)}</th>${cv?`<th>${esc(s.name)} (${m.conv})</th>`:''}${sn(m)?'<th>n</th>':''}`).join('')}</tr>
+ ${m.rows.map((r,y)=>`<tr><td style="padding:5px 8px">${esc(nameOf(m,r,y))}</td>${C[y].map(o=>bCell('<b>'+f2(o.x)+'</b>')+(cv?bCell(f2(o.c)):'')+(sn(m)?bCell('<span style="color:#889">'+o.n+'</span>'):'')).join('')}</tr>`).join('')}${statHtml(statsAoa(m,C))}</table></div>`}
+function exp(){const m=M(),cv=m.conv!='none',C=m.rows.map(r=>calc(m,r));
+ const h=[m.showName!==false?'ФИО / код':'№',...m.scales.flatMap(s=>[s.name,...(cv?[s.name+' ('+m.conv+')']:[]),...(sn(m)?['n']:[])])];
+ const rows=m.rows.map((r,y)=>[nameOf(m,r,y),...C[y].flatMap(o=>[f2(o.x),...(cv?[f2(o.c)]:[]),...(sn(m)?[o.n]:[])])]);
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([h,...rows,...statsAoa(m,C)]),'Результаты');
  XLSX.writeFile(wb,m.name.replace(/[\\/:*?"<>|]/g,'_')+'.xlsx')}
 function theme(){const d=document.documentElement,n=d.dataset.theme=='dark'?'light':'dark';d.dataset.theme=n;try{localStorage.setItem('psy-theme',n)}catch(e){}}
 function route(){const a=location.hash=='#app';$('#home').hidden=a;$('#app').hidden=!a;if(a){render();if(!S.seen)tut();navigator.storage?.persist?.()}}
@@ -204,16 +209,16 @@ function bCalc(b){const ms=bm(b);return b.rows.map(r=>ms.map(m=>calc(m,{a:r.a[m.
 function bCell(h){return '<td style="padding:5px 8px;text-align:center">'+h+'</td>'}
 function bResults(){const b=B(),ms=bm(b),nm=b.showName!==false,C=bCalc(b),cv=m=>m.conv!='none';
  if(!ms.length){$('#v').innerHTML='<div class="card">Отметьте методики на вкладке «Состав».</div>';return}
- $('#v').innerHTML=`<div class="card"><div class="row"><button class="o" onclick="expB()">Выгрузить в Excel</button><small>Пропуски не учитываются; «n» — сколько пунктов учтено в шкале.</small></div></div>
- <div class="w"><table><tr><th rowspan="2">${nm?'ФИО / код':'№'}</th>${ms.map(m=>`<th colspan="${m.scales.length*(cv(m)?3:2)}">${esc(m.name)}</th>`).join('')}</tr>
- <tr>${ms.map(m=>m.scales.map(s=>`<th>${esc(s.name)}</th>${cv(m)?`<th>${esc(s.name)} (${m.conv})</th>`:''}<th>n</th>`).join('')).join('')}</tr>
- ${b.rows.map((r,y)=>`<tr><td style="padding:5px 8px">${esc(nameOf(b,r,y))}</td>${C[y].map((c,k)=>c.map(o=>bCell('<b>'+f2(o.x)+'</b>')+(cv(ms[k])?bCell(f2(o.c)):'')+bCell('<span style="color:#889">'+o.n+'</span>')).join('')).join('')}</tr>`).join('')}</table></div>`}
+ $('#v').innerHTML=`<div class="card"><div class="row"><button class="o" onclick="expB()">Выгрузить в Excel</button><small>Пропуски не учитываются.</small></div></div>
+ <div class="w"><table><tr><th rowspan="2">${nm?'ФИО / код':'№'}</th>${ms.map(m=>`<th colspan="${cw(m)}">${esc(m.name)}</th>`).join('')}</tr>
+ <tr>${ms.map(m=>m.scales.map(s=>`<th>${esc(s.name)}</th>${cv(m)?`<th>${esc(s.name)} (${m.conv})</th>`:''}${sn(m)?'<th>n</th>':''}`).join('')).join('')}</tr>
+ ${b.rows.map((r,y)=>`<tr><td style="padding:5px 8px">${esc(nameOf(b,r,y))}</td>${C[y].map((c,k)=>c.map(o=>bCell('<b>'+f2(o.x)+'</b>')+(cv(ms[k])?bCell(f2(o.c)):'')+(sn(ms[k])?bCell('<span style="color:#889">'+o.n+'</span>'):'')).join('')).join('')}</tr>`).join('')}${statHtml(bStats(b,ms,C))}</table></div>`}
 function expB(){const b=B(),ms=bm(b),nm=b.showName!==false,C=bCalc(b),cv=m=>m.conv!='none',n0=nm?'ФИО / код':'№';
- const h=[n0,...ms.flatMap(m=>m.scales.flatMap(s=>[m.name+': '+s.name,...(cv(m)?[m.name+': '+s.name+' ('+m.conv+')']:[]),m.name+': '+s.name+' n']))];
- const rows=b.rows.map((r,y)=>[nameOf(b,r,y),...C[y].flatMap((c,k)=>c.flatMap(o=>[f2(o.x),...(cv(ms[k])?[f2(o.c)]:[]),o.n]))]);
- const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([h,...rows]),'Сводка');
- ms.forEach((m,k)=>{const hh=[n0,...m.scales.flatMap(s=>[s.name,...(cv(m)?[s.name+' ('+m.conv+')']:[]),'n'])],rr=b.rows.map((r,y)=>[nameOf(b,r,y),...C[y][k].flatMap(o=>[f2(o.x),...(cv(m)?[f2(o.c)]:[]),o.n])]);
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([hh,...rr]),((k+1)+' '+m.name).replace(/[\\/?*\[\]:]/g,'_').slice(0,31))});
+ const h=[n0,...ms.flatMap(m=>m.scales.flatMap(s=>[m.name+': '+s.name,...(cv(m)?[m.name+': '+s.name+' ('+m.conv+')']:[]),...(sn(m)?[m.name+': '+s.name+' n']:[])]))];
+ const rows=b.rows.map((r,y)=>[nameOf(b,r,y),...C[y].flatMap((c,k)=>c.flatMap(o=>[f2(o.x),...(cv(ms[k])?[f2(o.c)]:[]),...(sn(ms[k])?[o.n]:[])]))]);
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([h,...rows,...bStats(b,ms,C)]),'Сводка');
+ ms.forEach((m,k)=>{const Ck=C.map(r=>r[k]),hh=[n0,...m.scales.flatMap(s=>[s.name,...(cv(m)?[s.name+' ('+m.conv+')']:[]),...(sn(m)?['n']:[])])],rr=b.rows.map((r,y)=>[nameOf(b,r,y),...Ck[y].flatMap(o=>[f2(o.x),...(cv(m)?[f2(o.c)]:[]),...(sn(m)?[o.n]:[])])]);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([hh,...rr,...statsAoa(m,Ck)]),((k+1)+' '+m.name).replace(/[\\/?*\[\]:]/g,'_').slice(0,31))});
  XLSX.writeFile(wb,b.name.replace(/[\\/:*?"<>|]/g,'_')+'.xlsx')}
 document.addEventListener('paste',e=>{const t=e.target;if(!t.dataset||t.dataset.bc===undefined)return;const txt=(e.clipboardData||window.clipboardData).getData('text');
  if(!/[\t\n]/.test(txt.trim()))return;e.preventDefault();const b=B(),ms=bm(b),g=parseDelim(txt),r0=+t.dataset.br,c0=+t.dataset.bc;
@@ -222,3 +227,19 @@ document.addEventListener('keydown',e=>{const t=e.target;if(e.key=='Enter'&&t.da
 S.ms.forEach(m=>{m.id=m.id||Date.now()+Math.random()});
 TUT.splice(TUT.length-1,0,['Батарея методик','Если одним испытуемым вы проводите несколько методик, создайте «+ Новая батарея» в списке слева: отметьте методики, вносите ответы одной таблицей (или вставьте широкую таблицу из Excel) и получайте все шкалы всех методик сразу, с выгрузкой в Excel. Отдельные методики по-прежнему можно считать по одной.']);
 for(const [k,g] of [['selM',()=>selM],['selB',()=>selB],['addB',()=>addB],['delB',()=>delB],['togB',()=>togB],['bSet',()=>bSet],['clearRowB',()=>clearRowB],['clearColB',()=>clearColB],['clearB',()=>clearB],['expB',()=>expB],['B',()=>B]])Object.defineProperty(window,k,{get:g,configurable:true});
+
+/* ===== число пунктов, n, среднее и SD по шкале ===== */
+function sn(m){return m.showN!==false}
+function cw(m){return m.scales.length*(1+(m.conv!='none'?1:0)+(sn(m)?1:0))}
+function dstat(vals){const v=vals.filter(x=>x!=null&&!isNaN(x)),n=v.length;if(!n)return{n:0,m:null,sd:null};const mu=v.reduce((a,b)=>a+b,0)/n;return{n,m:mu,sd:n>1?Math.sqrt(v.reduce((a,b)=>a+(b-mu)**2,0)/(n-1)):null}}
+function sCells(m,C,kind){if(!(kind?m.statSd:m.statMean))return null;const cv=m.conv!='none',f=d=>kind?d.sd:d.m;
+ return m.scales.flatMap((s,k)=>[f2(f(dstat(C.map(c=>c[k].x)))),...(cv?[f2(f(dstat(C.map(c=>c[k].c))))]:[]),...(sn(m)?['']:[])])}
+function statsAoa(m,C){return [0,1].map(i=>{const c=sCells(m,C,i);return c&&[['Среднее','Станд. отклонение (n−1)'][i],...c]}).filter(Boolean)}
+function bStats(b,ms,C){return [0,1].map(i=>{const p=ms.map((m,k)=>sCells(m,C.map(r=>r[k]),i));return p.some(Boolean)?[['Среднее','Станд. отклонение (n−1)'][i],...ms.flatMap((m,k)=>p[k]||Array(cw(m)).fill(''))]:null}).filter(Boolean)}
+function statHtml(R){return R.map(r=>'<tr style="background:var(--hint)"><td style="padding:5px 8px"><b>'+r[0]+'</b></td>'+r.slice(1).map(bCell).join('')+'</tr>').join('')}
+function setN(){const m=M(),n=Math.max(1,Math.min(1000,parseInt($('#nitems').value)||0)),c=m.items.length;if(n==c)return render();
+ if(n<c&&!confirm('Уменьшить число пунктов с '+c+' до '+n+'? Последние пункты и введённые на них ответы будут удалены.'))return render();
+ if(n>c){for(let i=c;i<n;i++)m.items.push({t:'Пункт '+(i+1),r:false});m.rows.forEach(r=>{while(r.a.length<n)r.a.push('')})}
+ else{m.items.length=n;m.rows.forEach(r=>{r.a.length=Math.min(r.a.length,n)})}
+ m.scales.forEach(s=>{if(String(s.it).trim()=='1-'+c)s.it='1-'+n});render();toast('Пунктов: '+n+(m.scales.some(s=>s.it=='1-'+n)?'':'. Проверьте номера пунктов в шкалах'))}
+Object.defineProperty(window,'setN',{get:()=>setN,configurable:true});
