@@ -56,9 +56,9 @@ const TIPS={'+ Новая методика':'Создать пустую мет�
 const tips=()=>document.querySelectorAll('button,label').forEach(b=>{const t=TIPS[b.textContent.trim()];if(t)b.title=t});
 function side(){const g={},k=m=>m.cat||'Без категории',bo=S.mode=='b';S.ms.forEach((m,i)=>(g[k(m)]=g[k(m)]||[]).push(i));
  $('#list').innerHTML=Object.keys(g).sort().map(c=>`<div class="cat">${esc(c)}</div>`+g[c].map(i=>`<div class="m ${i==S.cur&&!bo?'a':''}" onclick="selM(${i})" style="display:flex;justify-content:space-between"><span>${esc(S.ms[i].name)}</span><span title="Удалить методику" onclick="event.stopPropagation();delM(${i})">✕</span></div>`).join('')).join('')
- +'<div class="cat">Батареи методик</div>'+(S.bat||[]).map((b,i)=>`<div class="m ${bo&&i==S.cb?'a':''}" onclick="selB(${i})" style="display:flex;justify-content:space-between"><span>🗂 ${esc(b.name)}</span><span title="Удалить батарею" onclick="event.stopPropagation();delB(${i})">✕</span></div>`).join('')+'<div class="m" onclick="addB()" style="opacity:.85">+ Новая батарея</div>'}
+ +'<div class="cat">Батареи методик</div>'+(S.bat||[]).map((b,i)=>`<div class="m ${bo&&i==S.cb?'a':''}" onclick="selB(${i})" style="display:flex;justify-content:space-between"><span>🗂 ${esc(b.name)}</span><span title="Удалить батарею" onclick="event.stopPropagation();delB(${i})">✕</span></div>`).join('')+'<div class="m" onclick="addB()" style="opacity:.85">+ Новая батарея</div>'+'<div class="cat">Готовые обработки</div><div class="m'+(S.mode=='la'?' a':'')+'" onclick="selLA()">🧪 Тест ЛА (Дворщенко)</div>'}
 const cats=()=>[...new Set([...S.ms,...(S.tpl||[])].map(m=>m.cat).filter(Boolean))].map(c=>`<option value="${esc(c)}">`).join('');
-function render(){side();if(S.mode=='b'&&(S.bat||[])[S.cb])return renderB();
+function render(){side();if(S.mode=='la')return renderLA();if(S.mode=='b'&&(S.bat||[])[S.cb])return renderB();
  if(!M()){$('#tabs').innerHTML='';$('#v').innerHTML='<p>Создайте методику слева или выберите «★ Создать из шаблона».</p>';return}
  $('#tabs').innerHTML=['Настройка','Ввод данных','Результаты'].map((t,i)=>`<div class="tab ${i==S.tab?'a':''}" onclick="S.tab=${i};render()">${t}</div>`).join('');
  [setup,data,results][S.tab]();$('#v').insertAdjacentHTML('afterbegin','<div class="hint">'+H[S.tab]+'</div>');tips();save()}
@@ -270,3 +270,9 @@ function doExpMany(){const ix=[...document.querySelectorAll('.xm:checked')].map(
  $o('');toast('Выгружено методик: '+cp.length+(wd?'':'. Файл можно загрузить в public/templates'))}
 for(const [k,g] of [['expMany',()=>expMany],['selAllX',()=>selAllX],['doExpMany',()=>doExpMany]])Object.defineProperty(window,k,{get:g,configurable:true});
 (function(){const s=document.querySelector('aside button[onclick="saveFile()"]');if(s&&!document.getElementById('xmany')){const b=document.createElement('button');b.id='xmany';b.className='g';b.textContent='⬇ Выгрузить методики в файл';b.title='Скачать одну или несколько методик одним файлом';b.setAttribute('onclick','expMany()');s.after(b)}})();
+
+/* ===== Готовые обработки: Тест личностных акцентуаций (ЛА), public/la/index.html ===== */
+window.XLSX=XLSX;
+function renderLA(){$('#tabs').innerHTML='';$('#v').innerHTML='<iframe id="laf" src="./la/index.html" title="Тест личностных акцентуаций" style="width:100%;height:calc(100vh - 44px);min-height:640px;border:0;border-radius:8px;background:#0a1730"></iframe>';save()}
+function selLA(){S.mode='la';render()}
+Object.defineProperty(window,'selLA',{get:()=>selLA,configurable:true});
