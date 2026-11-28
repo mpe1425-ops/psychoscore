@@ -1,4 +1,24 @@
-{"name":"psychoscore","version":"0.1.0","private":true,"type":"module","license":"MIT",
-"scripts":{"dev":"vite","build":"vite build","preview":"vite preview","test":"vitest run"},
-"dependencies":{"xlsx":"https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"},
-"devDependencies":{"vite":"^5.4.0","vite-plugin-pwa":"^0.20.5","vitest":"^2.1.0"}}
+{
+ "name": "psychoscore",
+ "version": "0.1.0",
+ "private": true,
+ "type": "module",
+ "license": "MIT",
+ "scripts": {
+  "dev": "vite",
+  "build": "vite build",
+  "preview": "vite preview",
+  "test": "vitest run",
+  "prebuild": "node scripts/make-index.js",
+  "predev": "node scripts/make-index.js"
+ },
+ "dependencies": {
+  "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+  "chart.js": "^4.4.1"
+ },
+ "devDependencies": {
+  "vite": "^5.4.0",
+  "vite-plugin-pwa": "^0.20.5",
+  "vitest": "^2.1.0"
+ }
+}
