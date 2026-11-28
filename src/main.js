@@ -1,5 +1,6 @@
 import './style.css';
 import * as XLSX from 'xlsx';
+import Chart from 'chart.js/auto';
 import {parseIt,val,calc,f2,parseDelim,clean} from './engine.js';
 
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -27,7 +28,7 @@ function openFile(f){if(!f)return;const r=new FileReader();r.onload=()=>{let d;t
 function saveTpl(){if($('#op'))saveOpts();const m=M(),n=prompt('Название шаблона (например «СМИЛ-566»):',m.name);if(!n)return;
  const c=JSON.parse(JSON.stringify(m));c.name=n;c.rows=[];S.tpl=(S.tpl||[]).filter(t=>t.name!=n);S.tpl.push(c);save();toast('Шаблон «'+n+'» сохранён')}
 let SH=[];
-async function loadShared(){const get=async u=>{const r=await fetch(u+'?'+Date.now(),{cache:'no-store'});if(!r.ok)throw 0;return r.json()};
+async function loadShared(){if(window.__OFFLINE){SH=window.__OFFLINE.shared||[];return}const get=async u=>{const r=await fetch(u+'?'+Date.now(),{cache:'no-store'});if(!r.ok)throw 0;return r.json()};
  const m=new Map();let ok=false;const add=d=>(d.tpl||[]).forEach(t=>m.set(t.name,t));
  try{add(await get('./shared-templates.json'));ok=true}catch(e){}
  try{const idx=await get('./templates/index.json');ok=true;await Promise.all(idx.map(async f=>{try{add(await get('./templates/'+encodeURIComponent(f)))}catch(e){}}))}catch(e){}
@@ -56,9 +57,9 @@ const TIPS={'+ Новая методика':'Создать пустую мет�
 const tips=()=>document.querySelectorAll('button,label').forEach(b=>{const t=TIPS[b.textContent.trim()];if(t)b.title=t});
 function side(){const g={},k=m=>m.cat||'Без категории',bo=S.mode=='b';S.ms.forEach((m,i)=>(g[k(m)]=g[k(m)]||[]).push(i));
  $('#list').innerHTML=Object.keys(g).sort().map(c=>`<div class="cat">${esc(c)}</div>`+g[c].map(i=>`<div class="m ${i==S.cur&&!bo?'a':''}" onclick="selM(${i})" style="display:flex;justify-content:space-between"><span>${esc(S.ms[i].name)}</span><span title="Удалить методику" onclick="event.stopPropagation();delM(${i})">✕</span></div>`).join('')).join('')
- +'<div class="cat">Батареи методик</div>'+(S.bat||[]).map((b,i)=>`<div class="m ${bo&&i==S.cb?'a':''}" onclick="selB(${i})" style="display:flex;justify-content:space-between"><span>🗂 ${esc(b.name)}</span><span title="Удалить батарею" onclick="event.stopPropagation();delB(${i})">✕</span></div>`).join('')+'<div class="m" onclick="addB()" style="opacity:.85">+ Новая батарея</div>'+'<div class="cat">Готовые обработки</div><div class="m'+(S.mode=='la'?' a':'')+'" onclick="selLA()">🧪 Тест ЛА (Дворщенко)</div>'}
+ +'<div class="cat">Батареи методик</div>'+(S.bat||[]).map((b,i)=>`<div class="m ${bo&&i==S.cb?'a':''}" onclick="selB(${i})" style="display:flex;justify-content:space-between"><span>🗂 ${esc(b.name)}</span><span title="Удалить батарею" onclick="event.stopPropagation();delB(${i})">✕</span></div>`).join('')+'<div class="m" onclick="addB()" style="opacity:.85">+ Новая батарея</div>'+'<div class="cat">Библиотека</div><div class="m'+(S.mode=='lib'?' a':'')+'" onclick="selLib()">📚 Все методики и шаблоны</div>'+PROCS().map(p=>'<div class="m'+(S.mode=='proc'&&S.proc==p.id?' a':'')+'" onclick="selProc(\''+p.id+'\')">'+p.icon+' '+esc(p.title)+'</div>').join('')}
 const cats=()=>[...new Set([...S.ms,...(S.tpl||[])].map(m=>m.cat).filter(Boolean))].map(c=>`<option value="${esc(c)}">`).join('');
-function render(){side();if(S.mode=='la')return renderLA();if(S.mode=='b'&&(S.bat||[])[S.cb])return renderB();
+function render(){side();if(S.mode=='la'){S.mode='proc';S.proc='la'}if(S.mode=='lib')return renderLib();if(S.mode=='proc')return renderProc();if(S.mode=='b'&&(S.bat||[])[S.cb])return renderB();
  if(!M()){$('#tabs').innerHTML='';$('#v').innerHTML='<p>Создайте методику слева или выберите «★ Создать из шаблона».</p>';return}
  $('#tabs').innerHTML=['Настройка','Ввод данных','Результаты'].map((t,i)=>`<div class="tab ${i==S.tab?'a':''}" onclick="S.tab=${i};render()">${t}</div>`).join('');
  [setup,data,results][S.tab]();$('#v').insertAdjacentHTML('afterbegin','<div class="hint">'+H[S.tab]+'</div>');tips();save()}
@@ -272,7 +273,43 @@ for(const [k,g] of [['expMany',()=>expMany],['selAllX',()=>selAllX],['doExpMany'
 (function(){const s=document.querySelector('aside button[onclick="saveFile()"]');if(s&&!document.getElementById('xmany')){const b=document.createElement('button');b.id='xmany';b.className='g';b.textContent='⬇ Выгрузить методики в файл';b.title='Скачать одну или несколько методик одним файлом';b.setAttribute('onclick','expMany()');s.after(b)}})();
 
 /* ===== Готовые обработки: Тест личностных акцентуаций (ЛА), public/la/index.html ===== */
-window.XLSX=XLSX;
-function renderLA(){$('#tabs').innerHTML='';$('#v').innerHTML='<iframe id="laf" src="./la/index.html" title="Тест личностных акцентуаций" style="width:100%;height:calc(100vh - 44px);min-height:640px;border:0;border-radius:8px;background:#0a1730"></iframe>';save()}
-function selLA(){S.mode='la';render()}
+window.XLSX=XLSX;window.Chart=Chart;
+
+function selLA(){selProc('la')}
 Object.defineProperty(window,'selLA',{get:()=>selLA,configurable:true});
+
+/* ===== Библиотека: готовые обработки + шаблоны в одном месте; офлайн-версия ===== */
+function PROCS(){return [
+ {id:'la',icon:'🧪',title:'Тест ЛА (Дворщенко)',src:'./la/index.html',desc:'Тест личностных акцентуаций В. П. Дворщенко (195 пунктов): ключи, правила выбора типа, интерпретации, печать, CSV.'},
+ {id:'smil',icon:'📈',title:'СМИЛ (ММPI) — Собчик',src:'./smil/index.html',desc:'СМИЛ по Л. Н. Собчик (566 пунктов): сырые баллы, К-коррекция, Т-баллы, профиль, дополнительные шкалы, выгрузка.'}]}
+function selLib(){S.mode='lib';render()}
+function selProc(id){S.mode='proc';S.proc=id;render()}
+async function pageText(src){if(window.__OFFLINE&&window.__OFFLINE.pages[src])return window.__OFFLINE.pages[src];const r=await fetch(src);if(!r.ok)throw 0;return r.text()}
+async function renderProc(){const p=PROCS().find(x=>x.id==S.proc)||PROCS()[0];$('#tabs').innerHTML='';
+ $('#v').innerHTML='<iframe id="laf" title="'+esc(p.title)+'" style="width:100%;height:calc(100vh - 44px);min-height:640px;border:0;border-radius:8px;background:#0a1730"></iframe>';save();
+ try{const t=await pageText(p.src),f=$('#laf');if(f)f.srcdoc=t}catch(e){$('#v').innerHTML='<div class="card">Не удалось загрузить страницу «'+esc(p.title)+'». Проверьте подключение или обновите страницу (Ctrl+F5).</div>'}}
+function libList(arr,mine){const g={},k=x=>x.cat||'Без категории';arr.forEach((x,i)=>(g[k(x)]=g[k(x)]||[]).push(i));
+ return Object.keys(g).sort().map(c=>`<div class="cat" style="color:var(--hd)">${esc(c)}</div>`+g[c].map(i=>`<div class="row" style="justify-content:space-between"><span><b>${esc(arr[i].name)}</b> <small>пунктов: ${arr[i].items.length}, шкал: ${arr[i].scales.length}</small></span><span><button class="o" onclick="${mine?`useTpl(${i})`:`useShared(${i})`}">Создать методику</button>${mine?` <button class="g" onclick="expTpl(${i})">⬇ Файл</button> <button class="x" title="Удалить шаблон" onclick="delTpl(${i})">✕</button>`:''}</span></div>`).join('')).join('')}
+function renderLib(){$('#tabs').innerHTML='';const t=S.tpl||[];
+ $('#v').innerHTML=`<div class="hint">📚 Всё готовое в одном месте: специализированные обработки, общая библиотека шаблонов и ваши шаблоны. «Создать методику» добавляет копию в ваш список методик.</div>
+ <div class="card"><h3>🧪 Готовые обработки</h3>${PROCS().map(p=>`<div class="row" style="justify-content:space-between"><span><b>${p.icon} ${esc(p.title)}</b><br><small>${esc(p.desc)}</small></span><button class="o" onclick="selProc('${p.id}')">Открыть</button></div>`).join('')}</div>
+ <div class="card"><h3>🌐 Общая библиотека шаблонов</h3>${SH.length?libList(SH,false):'<p>Пока пусто. Шаблоны добавляются файлами в папку public/templates репозитория.</p>'}</div>
+ <div class="card"><h3>★ Мои шаблоны</h3>${t.length?libList(t,true):'<p>Пока пусто. Настройте методику и нажмите «★ Сохранить как шаблон».</p>'}<div class="row"><button class="g" onclick="$('#fo').click()">📂 Загрузить шаблон из файла</button></div></div>
+ <div class="card"><h3>💾 Работа без интернета</h3><p>Скачайте текущую версию программы одним файлом — вместе с обработками ЛА и СМИЛ и общей библиотекой шаблонов. Файл открывается двойным щелчком в браузере (Chrome, Edge, Яндекс), интернет не нужен.</p><button class="o" onclick="dlOffline()">⬇ Скачать программу для работы без интернета</button><p><small>В офлайн-версии данные хранятся в браузере отдельно от сайта: переносите их файлом «💾 Сохранить в файл».</small></p></div>`;tips();save()}
+async function dlOffline(){if(window.__OFFLINE)return toast('Вы уже работаете в офлайн-версии');
+ const ms=document.querySelector('script[type=module][src]'),ls=document.querySelector('link[rel=stylesheet][href]');
+ if(!ms||!/assets\//.test(ms.getAttribute('src')))return alert('Скачивание доступно на опубликованном сайте (в собранной версии программы).');
+ const mine=confirm('Включить в файл ваши личные методики и шаблоны (без данных испытуемых)?\nОК — включить, Отмена — только общая библиотека и готовые обработки.');
+ toast('Готовлю файл…');
+ try{const t=async u=>{const r=await fetch(u);if(!r.ok)throw new Error(u);return r.text()};
+  let html=await t('./index.html');const js=await t(ms.src),css=ls?await t(ls.href):'',pages={};
+  for(const p of PROCS())pages[p.src]=await t(p.src);
+  const seed={pages,shared:SH};if(mine)seed.mine={ms:S.ms.map(m=>({...m,rows:[]})),tpl:S.tpl||[]};
+  html=html.replace(/<script[^>]*type="module"[^>]*><\/script>/gi,'').replace(/<script[^>]*registerSW[^>]*><\/script>/gi,'').replace(/<link[^>]*rel="(?:modulepreload|manifest|stylesheet)"[^>]*>/gi,'')
+   .replace('</head>',()=>'<style>'+css+'</style></head>')
+   .replace('</body>',()=>'<script>window.__OFFLINE='+JSON.stringify(seed).replace(/</g,'\\u003c')+'</script><script type="module">'+js.replace(/<\/script/gi,'<\\/script')+'</script></body>');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));a.download='ПсихоСкор-офлайн.html';a.click();toast('Файл ПсихоСкор-офлайн.html скачан')}
+ catch(e){alert('Не удалось подготовить файл: '+e.message)}}
+for(const [k,g] of [['selLib',()=>selLib],['selProc',()=>selProc],['dlOffline',()=>dlOffline]])Object.defineProperty(window,k,{get:g,configurable:true});
+if(window.__OFFLINE&&window.__OFFLINE.mine&&!localStorage.getItem('psy-seeded')){try{const m=window.__OFFLINE.mine;if(m.ms&&m.ms.length)S.ms=m.ms;S.tpl=[...(S.tpl||[]),...(m.tpl||[])];S.cur=0;localStorage.setItem('psy-seeded','1');save();if(!$('#app').hidden)render()}catch(e){}}
+(function(){const s=document.getElementById('xmany');if(s&&!window.__OFFLINE&&!document.getElementById('xoff')){const b=document.createElement('button');b.id='xoff';b.className='g';b.textContent='⬇ Скачать программу (без интернета)';b.title='Одним файлом: программа, обработки ЛА и СМИЛ, общая библиотека';b.setAttribute('onclick','dlOffline()');s.after(b)}})();
